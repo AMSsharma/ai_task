@@ -16,7 +16,7 @@ def create_app() -> Flask:
     
     # Configure CORS mapping
     cors_allowed_origins = [
-        "https://ai-task-manager-ten.vercel.app",
+        "https://task-triumph-forge.vercel.app/",
         "https://ai-task-manager-ten.vercel.app/",
         "http://localhost:8080",
         "http://localhost:5173",
