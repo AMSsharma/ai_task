@@ -21,7 +21,6 @@ def create_app() -> Flask:
 
     cors_allowed_origins = [
         normalize_origin("https://task-triumph-forge.vercel.app"),
-        normalize_origin("https://ai-task-manager-ten.vercel.app"),
         normalize_origin("http://localhost:8080"),
         normalize_origin("http://localhost:5173"),
         normalize_origin("http://localhost:3000"),
