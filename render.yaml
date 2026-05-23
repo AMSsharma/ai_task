@@ -10,7 +10,7 @@ services:
       - key: PORT
         value: 10000
       - key: CORS_ALLOWED_ORIGINS
-        value: "*" # This can be updated to specific frontend URLs after frontend is deployed
+        value: "http://task-triumph-forge.vercel.app" # This can be updated to specific frontend URLs after frontend is deployed
       - key: CACHE_TTL_SECONDS
         value: "86400"
       - key: GEMINI_API_KEY

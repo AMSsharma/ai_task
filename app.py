@@ -14,16 +14,36 @@ load_dotenv()
 def create_app() -> Flask:
     app = Flask(__name__)
     
-    # Configure CORS mapping to allow all origins globally for seamless stateless API usage
+    # Configure CORS mapping
+    def normalize_origin(origin: str) -> str:
+        origin = origin.strip()
+        return origin[:-1] if origin.endswith("/") else origin
+
+    # Allow all origins by default for clean API consumption, or fallback to the list of specific origins
     cors_allowed_origins = "*"
-    
+
     allowed_env = os.getenv("CORS_ALLOWED_ORIGINS")
     if allowed_env:
         if allowed_env.strip() == "*":
             cors_allowed_origins = "*"
         else:
-            cors_allowed_origins = [orig.strip() for orig in allowed_env.split(",") if orig.strip()]
-            
+            cors_allowed_origins = [normalize_origin(orig) for orig in allowed_env.split(",") if orig.strip()]
+    else:
+        # If no environment variable is provided, default to allowing these domains
+        cors_allowed_origins = [
+            normalize_origin("https://task-triumph-forge.vercel.app"),
+            normalize_origin("http://localhost:8080"),
+            normalize_origin("http://localhost:5173"),
+            normalize_origin("http://localhost:3000"),
+            normalize_origin("http://127.0.0.1:8080"),
+            normalize_origin("http://127.0.0.1:5173"),
+            normalize_origin("http://127.0.0.1:3000"),
+        ]
+
+    # Remove duplicates from the list if it's a list
+    if isinstance(cors_allowed_origins, list):
+        cors_allowed_origins = list(set(cors_allowed_origins))
+
     CORS(app, resources={r"/*": {
         "origins": cors_allowed_origins,
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
