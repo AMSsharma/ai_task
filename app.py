@@ -15,15 +15,19 @@ def create_app() -> Flask:
     app = Flask(__name__)
     
     # Configure CORS mapping
+    def normalize_origin(origin: str) -> str:
+        origin = origin.strip()
+        return origin[:-1] if origin.endswith("/") else origin
+
     cors_allowed_origins = [
-        "https://task-triumph-forge.vercel.app/",
-        "https://ai-task-manager-ten.vercel.app/",
-        "http://localhost:8080",
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:8080",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000"
+        normalize_origin("https://task-triumph-forge.vercel.app"),
+        normalize_origin("https://ai-task-manager-ten.vercel.app"),
+        normalize_origin("http://localhost:8080"),
+        normalize_origin("http://localhost:5173"),
+        normalize_origin("http://localhost:3000"),
+        normalize_origin("http://127.0.0.1:8080"),
+        normalize_origin("http://127.0.0.1:5173"),
+        normalize_origin("http://127.0.0.1:3000"),
     ]
     
     allowed_env = os.getenv("CORS_ALLOWED_ORIGINS")
@@ -31,13 +35,8 @@ def create_app() -> Flask:
         if allowed_env.strip() == "*":
             cors_allowed_origins = "*"
         else:
-            extra_origins = [orig.strip() for orig in allowed_env.split(",") if orig.strip()]
+            extra_origins = [normalize_origin(orig) for orig in allowed_env.split(",") if orig.strip()]
             cors_allowed_origins.extend(extra_origins)
-            for orig in extra_origins:
-                if orig.endswith("/"):
-                    cors_allowed_origins.append(orig[:-1])
-                else:
-                    cors_allowed_origins.append(orig + "/")
                     
     # Remove duplicates from the list if it's a list
     if isinstance(cors_allowed_origins, list):
