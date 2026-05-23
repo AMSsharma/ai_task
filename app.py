@@ -19,8 +19,10 @@ def create_app() -> Flask:
     env = os.getenv("FLASK_ENV", "development")
     if env == "production":
         allowed_env = os.getenv("CORS_ALLOWED_ORIGINS")
-        if allowed_env:
+        if allowed_env and allowed_env.strip() != "*":
             cors_allowed_origins = [orig.strip() for orig in allowed_env.split(",") if orig.strip()]
+        elif allowed_env and allowed_env.strip() == "*":
+            cors_allowed_origins = "*"
     
     CORS(app, resources={r"/*": {"origins": cors_allowed_origins}})
 
