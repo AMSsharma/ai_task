@@ -14,36 +14,21 @@ load_dotenv()
 def create_app() -> Flask:
     app = Flask(__name__)
     
-    # Configure CORS mapping
-    cors_allowed_origins = [
-        "https://ai-task-manager-ten.vercel.app",
-        "https://ai-task-manager-ten.vercel.app/",
-        "http://localhost:8080",
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:8080",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000"
-    ]
+    # Configure CORS mapping to allow all origins globally for seamless stateless API usage
+    cors_allowed_origins = "*"
     
     allowed_env = os.getenv("CORS_ALLOWED_ORIGINS")
     if allowed_env:
         if allowed_env.strip() == "*":
             cors_allowed_origins = "*"
         else:
-            extra_origins = [orig.strip() for orig in allowed_env.split(",") if orig.strip()]
-            cors_allowed_origins.extend(extra_origins)
-            for orig in extra_origins:
-                if orig.endswith("/"):
-                    cors_allowed_origins.append(orig[:-1])
-                else:
-                    cors_allowed_origins.append(orig + "/")
-                    
-    # Remove duplicates from the list if it's a list
-    if isinstance(cors_allowed_origins, list):
-        cors_allowed_origins = list(set(cors_allowed_origins))
-    
-    CORS(app, resources={r"/*": {"origins": cors_allowed_origins}})
+            cors_allowed_origins = [orig.strip() for orig in allowed_env.split(",") if orig.strip()]
+            
+    CORS(app, resources={r"/*": {
+        "origins": cors_allowed_origins,
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+    }})
 
     # Register blueprints
     app.register_blueprint(health_bp)
