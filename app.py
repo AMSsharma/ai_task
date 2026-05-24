@@ -3,6 +3,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 from waitress import serve
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Import Route Blueprints
 from routes.health_routes import health_bp
@@ -11,50 +12,80 @@ from routes.task_routes import task_bp
 # Load environment configuration
 load_dotenv()
 
+
 def create_app() -> Flask:
     app = Flask(__name__)
-    
-    # Configure CORS mapping
+
+    # Fix proxy headers for Render / Vercel / Reverse Proxies
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+    # -------------------------------
+    # Normalize Origins
+    # -------------------------------
     def normalize_origin(origin: str) -> str:
         origin = origin.strip()
         return origin[:-1] if origin.endswith("/") else origin
 
-    # Allow all origins by default for clean API consumption, or fallback to the list of specific origins
-    cors_allowed_origins = "*"
-
+    # -------------------------------
+    # Configure Allowed Origins
+    # -------------------------------
     allowed_env = os.getenv("CORS_ALLOWED_ORIGINS")
+
     if allowed_env:
         if allowed_env.strip() == "*":
             cors_allowed_origins = "*"
         else:
-            cors_allowed_origins = [normalize_origin(orig) for orig in allowed_env.split(",") if orig.strip()]
+            cors_allowed_origins = list({
+                normalize_origin(origin)
+                for origin in allowed_env.split(",")
+                if origin.strip()
+            })
     else:
-        # If no environment variable is provided, default to allowing these domains
         cors_allowed_origins = [
-            normalize_origin("https://task-triumph-forge.vercel.app"),
-            normalize_origin("http://localhost:8080"),
-            normalize_origin("http://localhost:5173"),
-            normalize_origin("http://localhost:3000"),
-            normalize_origin("http://127.0.0.1:8080"),
-            normalize_origin("http://127.0.0.1:5173"),
-            normalize_origin("http://127.0.0.1:3000"),
+            "https://task-triumph-forge.vercel.app",
+            "http://localhost:8080",
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:8080",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:3000",
         ]
 
-    # Remove duplicates from the list if it's a list
-    if isinstance(cors_allowed_origins, list):
-        cors_allowed_origins = list(set(cors_allowed_origins))
+    # -------------------------------
+    # CORS Configuration
+    # -------------------------------
+    CORS(
+        app,
+        resources={
+            r"/*": {
+                "origins": cors_allowed_origins,
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "allow_headers": "*",
+                "expose_headers": "*",
+                "supports_credentials": True,
+            }
+        }
+    )
 
-    CORS(app, resources={r"/*": {
-        "origins": cors_allowed_origins,
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
-    }})
-
-    # Register blueprints
+    # -------------------------------
+    # Register Blueprints
+    # -------------------------------
     app.register_blueprint(health_bp)
     app.register_blueprint(task_bp)
 
-    # Standard JSON API Error Handlers
+    # -------------------------------
+    # Health Route
+    # -------------------------------
+    @app.route("/")
+    def root():
+        return jsonify({
+            "success": True,
+            "message": "TaskTriumph Backend Running"
+        })
+
+    # -------------------------------
+    # Error Handlers
+    # -------------------------------
     @app.errorhandler(400)
     def bad_request(error):
         return jsonify({
@@ -81,23 +112,30 @@ def create_app() -> Flask:
 
     return app
 
+
+# Create Flask App
 app = create_app()
 
+# -------------------------------
+# Run Server
+# -------------------------------
 if __name__ == "__main__":
+
     port = int(os.getenv("PORT", 5000))
     env = os.getenv("FLASK_ENV", "development")
-    
+
     print("=" * 60)
-    print(f" TaskTriumph AI Task Backend Starting...")
-    print(f" Serving Environment: {env}")
-    print(f" Allowed CORS Origins: {os.getenv('CORS_ALLOWED_ORIGINS')}")
-    print(f" Running on: http://localhost:{port}")
+    print(" TaskTriumph AI Backend Starting...")
+    print(f" Environment: {env}")
+    print(f" Port: {port}")
+    print(f" CORS Origins: {os.getenv('CORS_ALLOWED_ORIGINS', 'DEFAULT')}")
     print("=" * 60)
-    
+
     if env == "production":
-        # Production serve using Waitress WSGI
         serve(app, host="0.0.0.0", port=port)
     else:
-        # Development serve with auto-reload
-        app.run(host="0.0.0.0", port=port, debug=True)
-
+        app.run(
+            host="0.0.0.0",
+            port=port,
+            debug=True
+        )
