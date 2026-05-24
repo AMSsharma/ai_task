@@ -12,3 +12,4 @@ SpeechRecognition==3.16.1
 pydub==0.25.1
 indic-transliteration==2.3.69
 gunicorn==21.2.0
+Werkzeug==3.0.3
